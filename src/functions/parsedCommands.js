@@ -2,7 +2,10 @@ const regexType = {
   functionCreate: /function\s*([a-z0-9]+)\s*\((.*)\)(\t|\r|\s)*\{(.*)\}/gi,
   functionCall: /\s*([a-z0-9]+)\s*\((.*)\)/gi,
   assignVar: /\s*([a-z0-9]+)\s*=\s*([a-z0-9]+)/gi,
-  getVar: /\s*([a-z0-9]+)\s*/gi
+  getVar: /\s*([a-z0-9]+)\s*/gi,
+  help: /^help*$/gi,
+  helpFunc: /^\s*(help function+)/gi,  
+  helpVar: /^\s*(help var+)/gi
 };
 
 const makeFunc = s => {
