@@ -1,10 +1,12 @@
-import React, {useState, useEffect} from 'react';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import "./App.css";
+import { regexType, callFunc, makeFunc, assignVar, getVar } from "./functions/parsedCommands";
 
 function App() {
-  const [lines, addLines] = useState([])
-  const [newLine, updateLine] = useState('function eat(food, num) {return `eat ${num} ${food}s`}')
-  const [funcMap, addFunction] = useState({})
+  const [lines, addLines] = useState([]);
+  const [newLine, updateLine] = useState("");
+  const [funcMap, addFunction] = useState({});
+  const [varMap, addVar] = useState({});
 
   useEffect(() => {
     if (Object.keys(funcMap).length === 0) {
@@ -12,70 +14,68 @@ function App() {
         // eslint-disable-next-line no-eval
         obj[key] = eval(localStorage.getItem(key));
         return obj;
-      }, {})
+      }, {});
       if (Object.keys(obj).length > 0) {
         addFunction(obj);
       }
     } else {
       Object.keys(funcMap).forEach(key => {
-        localStorage.setItem(key, funcMap[key].toString())
-      })
+        localStorage.setItem(key, funcMap[key].toString());
+      });
     }
-  }, [funcMap])
+  }, [funcMap]);
+
 
   const types = {
-    function: 'function',
-    var: 'var',
-    class: 'class'
-  }
-
-  const regexType = {
-    functionCreate: '',
-    functionCall: /\s*([a-z0-9]+)\s*\((.*)\)/gi
-  }
-
-
-  const makeFunc = (s) => {
-    const parts = s.split(/(function)\s*([a-z0-9]+)\s*\((.*)\)(\t|\r|\s)*\{(.*)\}/)
-    const [, type, name, params, , body] = parts;
-    // eslint-disable-next-line no-eval
-    addFunction({
-      [name]: eval(`(${params}) => { ${body} }`),
-      ...funcMap
-    })
-    addLines([...lines, newLine]);
-    return parts
-  }
-
-  const callFunc = (s) => {
-    const parts = s.split(regexType.functionCall);
-    const [, name, params, ] = parts;
-    if (funcMap[name]) {
-      const res = funcMap[name](...params.split(',').map(x => x.trim()).map(x => !!+x ? JSON.parse(x) : x));
-      addLines([...lines, newLine])
-      addLines([...lines, res])
-    }
-
-  }
+    function: "function",
+    var: "var",
+    class: "class"
+  };
 
   const parseCommand = e => {
-    e.preventDefault()
-    if (newLine.match(/function\s*([a-z0-9]+)\s*\((.*)\)(\t|\r|\s)*\{(.*)\}/gi)) {
-      return makeFunc(newLine)
+    e.preventDefault();
+    if (newLine.match(regexType.functionCreate)) {
+      const parts = makeFunc(newLine);
+      addFunction({
+        // eslint-disable-next-line no-eval
+        [parts.name]: eval(`(${parts.params}) => { ${parts.body} }`),
+        ...funcMap
+      });
+      addLines([...lines, newLine]);
     } else if (newLine.match(regexType.functionCall)) {
-      return callFunc(newLine)
+      const res = callFunc(newLine, funcMap, varMap);
+      addLines([...lines, newLine, `> ${res}`]);
+    } else if (newLine.match(regexType.assignVar)) {
+      const res = assignVar(newLine, varMap);
+      addVar({...varMap, [res.name]: res.value})
+      addLines([...lines, newLine, `> ${res.value}`]);
+    } else if (newLine.match(regexType.getVar)) {
+      const res = getVar(newLine, varMap);
+      addLines([...lines, newLine, `> ${res}`]);
+
     }
-    return e
-  }
-  
+    updateLine('');
+    return e;
+  };
+
   return (
     <div className="App">
       <div className="data">
-        {lines.map((line, key) => <div className="line" key={key} >{line}</div>)}
+        {lines.map((line, key) => (
+          <div className="line" key={key}>
+            {line}
+          </div>
+        ))}
       </div>
       <form onSubmit={e => parseCommand(e)} className="input-container">
-        <input value={newLine} onChange={e => updateLine(e.target.value)} className="cli"/>
-        <button type="submit" className="enter">ENTER</button>
+        <input
+          value={newLine}
+          onChange={e => updateLine(e.target.value)}
+          className="cli"
+        />
+        <button type="submit" className="enter">
+          ENTER
+        </button>
       </form>
     </div>
   );
