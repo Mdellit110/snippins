@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import { callFunc, makeFunc } from "./functions/parsedCommands";
+import { regexType, callFunc, makeFunc, assignVar, getVar } from "./functions/parsedCommands";
 
 function App() {
   const [lines, addLines] = useState([]);
   const [newLine, updateLine] = useState("");
   const [funcMap, addFunction] = useState({});
+  const [varMap, addVar] = useState({});
 
   useEffect(() => {
     if (Object.keys(funcMap).length === 0) {
@@ -24,24 +25,36 @@ function App() {
     }
   }, [funcMap]);
 
+
   const types = {
     function: "function",
     var: "var",
     class: "class"
   };
 
-  const regexType = {
-    functionCreate: /function\s*([a-z0-9]+)\s*\((.*)\)(\t|\r|\s)*\{(.*)\}/gi,
-    functionCall: /\s*([a-z0-9]+)\s*\((.*)\)/gi
-  };
-
   const parseCommand = e => {
     e.preventDefault();
     if (newLine.match(regexType.functionCreate)) {
-      return makeFunc(newLine);
+      const parts = makeFunc(newLine);
+      addFunction({
+        // eslint-disable-next-line no-eval
+        [parts.name]: eval(`(${parts.params}) => { ${parts.body} }`),
+        ...funcMap
+      });
+      addLines([...lines, newLine]);
     } else if (newLine.match(regexType.functionCall)) {
-      return callFunc(newLine);
+      const res = callFunc(newLine, funcMap, varMap);
+      addLines([...lines, newLine, `> ${res}`]);
+    } else if (newLine.match(regexType.assignVar)) {
+      const res = assignVar(newLine, varMap);
+      addVar({...varMap, [res.name]: res.value})
+      addLines([...lines, newLine, `> ${res.value}`]);
+    } else if (newLine.match(regexType.getVar)) {
+      const res = getVar(newLine, varMap);
+      addLines([...lines, newLine, `> ${res}`]);
+
     }
+    updateLine('');
     return e;
   };
 
