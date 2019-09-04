@@ -13,14 +13,13 @@ function App() {
         obj[key] = eval(localStorage.getItem(key));
         return obj;
       }, {})
-      addFunction(obj);
+      if (Object.keys(obj).length > 0) {
+        addFunction(obj);
+      }
     } else {
-      const stringFuncs = Object.keys(funcMap).reduce((obj, key) => {
-        obj[key] = funcMap[key].toString();
+      Object.keys(funcMap).forEach(key => {
         localStorage.setItem(key, funcMap[key].toString())
-        return obj;
-      }, {})
-
+      })
     }
   }, [funcMap])
 
@@ -51,7 +50,6 @@ function App() {
   const callFunc = (s) => {
     const parts = s.split(regexType.functionCall);
     const [, name, params, ] = parts;
-    debugger
     if (funcMap[name]) {
       const res = funcMap[name](...params.split(',').map(x => x.trim()).map(x => !!+x ? JSON.parse(x) : x));
       addLines([...lines, newLine])
