@@ -45,6 +45,12 @@ function App() {
     } else if (newLine.match(regexType.functionCall)) {
       const res = callFunc(newLine, funcMap, varMap);
       addLines([...lines, newLine, `> ${res}`]);
+    } else if (newLine.match(regexType.help)) {
+      addLines([...lines, newLine, `> enter this fool:`, `>> help function - for list of functions`, `>> help var - for list of vars`  ]);   
+    } else if (newLine.match(regexType.helpFunc)) {
+      addLines([...lines, newLine, `> functions`]);   
+    } else if (newLine.match(regexType.helpVar)) {
+      addLines([...lines, newLine, `> vars`]);     
     } else if (newLine.match(regexType.assignVar)) {
       const res = assignVar(newLine, varMap);
       addVar({...varMap, [res.name]: res.value})
@@ -52,10 +58,9 @@ function App() {
     } else if (newLine.match(regexType.getVar)) {
       const res = getVar(newLine, varMap);
       addLines([...lines, newLine, `> ${res}`]);
-
     }
-    updateLine('');
-    return e;
+      updateLine('');
+      return e;
   };
 
   return (
