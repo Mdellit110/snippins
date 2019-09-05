@@ -1,10 +1,16 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useReducer } from "react";
 import "./App.css";
 import { regexType, callFunc, makeFunc, assignVar, getVar } from "./functions/parsedCommands";
+import { defaultLineState, lineStateReducer } from "./reducers/lines";
+
+
 
 function App() {
-  const [lines, addLines] = useState([]);
-  const [newLine, updateLine] = useState("");
+  const [lineState, lineDispatch] = useReducer(
+    lineStateReducer,
+    defaultLineState
+  )
+
   const [funcMap, addFunction] = useState({});
   const [varMap, addVar] = useState({});
 
@@ -25,48 +31,49 @@ function App() {
     }
   }, [funcMap]);
 
-
-  const types = {
-    function: "function",
-    var: "var",
-    class: "class"
-  };
-
   const parseCommand = e => {
     e.preventDefault();
-    if (newLine.match(regexType.functionCreate)) {
-      const parts = makeFunc(newLine);
+    if (lineState.value.match(regexType.functionCreate)) {
+      // if (newLine.match(regexType.functionCreate)) {
+      const parts = makeFunc(lineState.value);
       addFunction({
+        ...funcMap,
         // eslint-disable-next-line no-eval
         [parts.name]: eval(`(${parts.params}) => { ${parts.body} }`),
-        ...funcMap
       });
-      addLines([...lines, newLine]);
-    } else if (newLine.match(regexType.functionCall)) {
-      const res = callFunc(newLine, funcMap, varMap);
-      addLines([...lines, newLine, `> ${res}`]);
-    } else if (newLine.match(regexType.help)) {
-      addLines([...lines, newLine, `> enter this fool:`, `>> help function - for list of functions`, `>> help var - for list of vars`  ]);   
-    } else if (newLine.match(regexType.helpFunc)) {
-      addLines([...lines, newLine, `> functions`]);   
-    } else if (newLine.match(regexType.helpVar)) {
-      addLines([...lines, newLine, `> vars`]);     
-    } else if (newLine.match(regexType.assignVar)) {
-      const res = assignVar(newLine, varMap);
-      addVar({...varMap, [res.name]: res.value})
-      addLines([...lines, newLine, `> ${res.value}`]);
-    } else if (newLine.match(regexType.getVar)) {
-      const res = getVar(newLine, varMap);
-      addLines([...lines, newLine, `> ${res}`]);
+
+      lineDispatch({type: 'addLine', payload: [lineState.value]})
+    } 
+    else if (lineState.value.match(regexType.functionCall)) {
+      const res = callFunc(lineState.value, funcMap, varMap);
+      lineDispatch({type: 'addLine', payload: [lineState.value, `> ${res}`]});
+    } 
+    else if (lineState.value.match(regexType.help)) {
+      lineDispatch({type: 'addLine', payload: [lineState.value, `> enter this fool:`, `>> help function - for list of functions`, `>> help var - for list of vars`]});
+    } 
+    else if (lineState.value.match(regexType.helpFunc)) {
+      lineDispatch({type: 'addLine', payload: [lineState.value, `> functions`]});
+    } 
+    else if (lineState.value.match(regexType.helpVar)) {
+      lineDispatch({type: 'addLine', payload: [lineState.value, `> vars`]});
+    } 
+    else if (lineState.value.match(regexType.assignVar)) {
+      const res = assignVar(lineState.value, varMap);
+      addVar({ ...varMap, [res.name]: res.value })
+      lineDispatch([lineState.value, `> ${res.value}`]);
+    } 
+    else if ({type: 'addLine', payload: lineState.value.match(regexType.getVar)}) {
+      const res = getVar(lineState.value, varMap);
+      lineDispatch({type: 'addLine', payload: [lineState.value, `> ${res}`]});
     }
-      updateLine('');
-      return e;
+    lineDispatch({type: 'updateLine', payload: ''});
+    return e;
   };
 
   return (
     <div className="App">
       <div className="data">
-        {lines.map((line, key) => (
+        {lineState.lines.map((line, key) => (
           <div className="line" key={key}>
             {line}
           </div>
@@ -74,8 +81,8 @@ function App() {
       </div>
       <form onSubmit={e => parseCommand(e)} className="input-container">
         <input
-          value={newLine}
-          onChange={e => updateLine(e.target.value)}
+          value={lineState.value}
+          onChange={e => lineDispatch({type: 'updateLine', payload: e.target.value})}
           className="cli"
         />
         <button type="submit" className="enter">
